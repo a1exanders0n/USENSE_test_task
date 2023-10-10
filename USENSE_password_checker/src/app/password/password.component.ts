@@ -1,45 +1,96 @@
-import { Component } from '@angular/core';
+import { Component, forwardRef } from '@angular/core';
+import { PasswordStrengthCheckerService } from '../services/password-strength-checker.service';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 @Component({
   selector: 'app-password',
   templateUrl: './password.component.html',
   styleUrls: ['./password.component.scss'],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => PasswordComponent),
+      multi: true,
+    },
+  ],
 })
-export class PasswordComponent {
+export class PasswordComponent implements ControlValueAccessor {
   public password: string = '';
-  public passwordStrength: string = '';
+  onChange: any = () => {};
+  onTouched: any = () => {};
 
   public get passwordStrengthString(): string {
-    return this.password.length < 8 || this.passwordStrength === 'easy'
+    return this.password.length < 8 ||
+      this._passwordStrengthService.checkPasswordStrength(this.password) ===
+        'easy'
       ? 'Your password is weak'
-      : this.passwordStrength === 'medium'
+      : this._passwordStrengthService.checkPasswordStrength(this.password) ===
+        'medium'
       ? 'Your password is not strong enough'
-      : this.passwordStrength === 'strong'
+      : this._passwordStrengthService.checkPasswordStrength(this.password) ===
+        'strong'
       ? 'Your password is great'
       : 'Your password is weak';
   }
 
-  checkPasswordStrength() {
-    if (this.password.length === 0) {
-      this.passwordStrength = '';
-    } else if (this.password.length < 8) {
-      this.passwordStrength = 'easy';
-    } else {
-      const hasLetters = /[a-zA-Z]/.test(this.password);
-      const hasDigits = /[0-9]/.test(this.password);
-      const hasSymbols = /[^a-zA-Z0-9]/.test(this.password);
+  public get firstBlockClass(): string {
+    return this._passwordStrengthService.checkPasswordStrength(
+      this.password
+    ) === 'strong'
+      ? 'green'
+      : this._passwordStrengthService.checkPasswordStrength(this.password) ===
+        'medium'
+      ? 'yellow'
+      : (this.password.length < 8 && this.password.length > 0) ||
+        this._passwordStrengthService.checkPasswordStrength(this.password) ===
+          'easy'
+      ? 'red'
+      : 'gray';
+  }
 
-      if (hasLetters && hasDigits && hasSymbols) {
-        this.passwordStrength = 'strong';
-      } else if (
-        (hasLetters && hasDigits) ||
-        (hasLetters && hasSymbols) ||
-        (hasDigits && hasSymbols)
-      ) {
-        this.passwordStrength = 'medium';
-      } else {
-        this.passwordStrength = 'easy';
-      }
+  public get secondBlockClass(): string {
+    return this._passwordStrengthService.checkPasswordStrength(
+      this.password
+    ) === 'strong'
+      ? 'green'
+      : this._passwordStrengthService.checkPasswordStrength(this.password) ===
+        'medium'
+      ? 'yellow'
+      : this.password.length < 8 && this.password.length > 0
+      ? 'red'
+      : 'gray';
+  }
+
+  public get thirdBlockClass(): string {
+    return this._passwordStrengthService.checkPasswordStrength(
+      this.password
+    ) === 'strong'
+      ? 'green'
+      : this.password.length < 8 && this.password.length > 0
+      ? 'red'
+      : 'gray';
+  }
+
+  constructor(
+    private readonly _passwordStrengthService: PasswordStrengthCheckerService
+  ) {}
+
+  writeValue(value: string): void {
+    if (value) {
+      this.password = value;
     }
+  }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+
+  onPasswordChange() {
+    this.onChange(this.password);
+    this.onTouched();
   }
 }
